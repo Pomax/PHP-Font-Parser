@@ -2,6 +2,9 @@ A PHP OpenType font parser, capable of extracting glyphs
 from TrueType and CFF OpenType fonts. TrueType collections
 are not supported (yet).
 
+Have a look at fonttest.php to see an example on how to
+use this package.
+
 The "PHP Font Parset" package was written and is maintained
 by Mike "Pomax" Kamermans of nihongoresources.com
 (c) Mike "Pomax" Kamermans, 2010-2011
