@@ -126,7 +126,7 @@
 				print_r($encoding);
 */
 				echo "ERROR: non-CID Fonts (OTF that use SID rather than CID to map glyphs) are currently not supported.";
-				exit();
+				exit(-1);
 			}
 			
 			// Is there a charset that we might find our character in?
