@@ -196,11 +196,11 @@
 				
 				// the next table can be found with a calculation mostly derived from the example on page 50 of the CFF specification
 				$offsetcount = count($this->offsets);			
-				$offset_and_data =	($this->offSize*$offsetcount)			// = number-of-offsets * size-of-offsets		(after, fp at start of data block)
-								+ $this->offsets[$offsetcount-1];		// = last entry in the offsets array			(after, fp at start of next table)	
+				$offset_and_data = ($this->offSize*$offsetcount)			// = number-of-offsets * size-of-offsets		(after, fp at start of data block)
+							+ $this->offsets[$offsetcount-1];		// = last entry in the offsets array			(after, fp at start of next table)	
 				$this->nexttable = $this->byteposition					// = start of table					(after, fp at start of table)
-								+ 2							// = unsigned short for "count"			(after, fp at start of offset definitions)
-								+ $offset_and_data;
+							+ 2							// = unsigned short for "count"			(after, fp at start of offset definitions)
+							+ $offset_and_data;
 				
 				//echo "next table starts at " . $this->nexttable . " (".dechex($this->nexttable).")\n";
 			}

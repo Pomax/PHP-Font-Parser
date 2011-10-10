@@ -24,12 +24,33 @@
 // ----------------------------------------------------
 
 	/**
+	 * This ensures all tables have a sensible toString function
+	 */
+	class PrintableTable
+	{
+		// the toString function simple writes out the
+		// class name, and all properties with their value.
+		function toString() {
+			$vars = get_object_vars($this);
+			$keys = array_keys($vars);
+			$str = get_class($this) . " => {";
+			for($i=0, $end=count($keys); $i<$end; $i++) {
+				$key = $keys[$i];
+				$val = $vars[$key];
+				$str .= "$key: $val";
+				if($i<$end-1) { $str .= ", "; }}
+			$str .= "}\n";
+			return $str;
+		}
+	}
+
+	/**
 	 * "struct" class for the "post" table.
 	 * NOTE: this is a partial implementation, mostly because the data in this table
 	 * is used only by postscript printers. It has some useful information, but it's not
 	 * worth fully parsing when the device it's for is not a printer.
 	 */
-	class OTTTFontPOST
+	class OTTTFontPOST extends PrintableTable
 	{
 		var $Version;
 		var $italicAngle;
@@ -41,7 +62,7 @@
 	/**
 	 * "struct" class for the "OS/2" table
 	 */
-	class OTTTFontOS2
+	class OTTTFontOS2 extends PrintableTable
 	{
 		var $version;
 		var $xAvgCharWidth;
@@ -85,7 +106,7 @@
 	/**
 	 * "struct" class for the "name" table.
 	 */
-	class OTTTFontNAME
+	class OTTTFontNAME extends PrintableTable
 	{
 		var $format;
 		var $count;
@@ -98,7 +119,7 @@
 	/**
 	 * "struct" class for the "maxp" table.
 	 */
-	class OTTTFontMAXP
+	class OTTTFontMAXP extends PrintableTable
 	{
 		var $Table_version_number;
 		var $numGlyphs;
@@ -120,7 +141,7 @@
 	/**
 	 * "struct" class for the "hmtx" table.
 	 */
-	class OTTTFontHMTX
+	class OTTTFontHMTX extends PrintableTable
 	{
 		var $hMetrics;
 		var $leftSideBearing;
@@ -129,7 +150,7 @@
 	/**
 	 * "struct" class for the "hhea" table.
 	 */
-	class OTTTFontHHEA
+	class OTTTFontHHEA extends PrintableTable
 	{
 		var $Table_version_number;
 		var $Ascender;
@@ -153,7 +174,7 @@
 	/**
 	 * "struct" class for the "head" table.
 	 */
-	class OTTTFontHEAD
+	class OTTTFontHEAD extends PrintableTable
 	{
 		var $Table_version_number;
 		var $fontRevision;
@@ -205,16 +226,6 @@
 		function __construct($font) { 
 			$this->font = $font; 
 			$this->load_tables($font); 
-			/*
-				echo "table loading result:\n";
-				echo $this->tableToString("head");
-				echo $this->tableToString("hhea");
-				echo $this->tableToString("hmtx");
-				echo $this->tableToString("maxp");
-				echo $this->tableToString("name");
-				echo $this->tableToString("os2");
-				echo $this->tableToString("post");
-			*/
 		}
 
 		/**
@@ -229,23 +240,6 @@
 			$this->get_name_table($font);
 			$this->get_os2_table($font);
 			$this->get_post_table($font);
-		}
-
-		/**
-		 * auto-builds a string representation of a struct class
-		 */
-		private function tableToString($tablename)
-		{
-			$classname = "OTTTFont" . strtoupper($tablename);
-			$ret = "String representation of $classname:\n";
-			$vars = get_class_vars($classname);
-			$varname = $tablename . "_table";
-			foreach ($vars as $name =>$value) { 
-				// get instance value (rather than static class value)
-				$value = $this->$varname->$name;
-				if(is_array($value)) { $ret .= "\t$name : " . count($value) . " element array\n"; }
-				else { $ret .= "\t$name : $value\n"; }}
-			return $ret;
 		}
 
 		/**

@@ -73,8 +73,11 @@
 		function set_filler_hash($hash) { $this->filler_hash=$hash; }
 
 		// table loader
-		var $OTFTableLoader;
-		function getOTFTableLoader() { return $this->OTFTableLoader; }
+		var $OTFTableLoader = "";
+		function getOTFTableLoader() { 
+			if($this->OTFTableLoader=="") {
+				$this->OTFTableLoader = new OTFTableLoader($this); }
+			return $this->OTFTableLoader; }
 
 		/**
 		 * The constructor loads part of the file into memory. It does not do any
@@ -107,9 +110,6 @@
 				$length = FileRead::read_ULONG($fh);
 				$this->tables[$tag] = new FontTable($tag,$checkSum,$offset,$length); }
 
-			// force-load the common OpenType tables
-			//$this->OTFTableLoader = new OTFTableLoader($this);
-
 			fclose($fh);
 		}
 		
@@ -126,16 +126,16 @@
 		 */
 		function toString() {
 			$tables = "";
-			foreach($this->tables as $table) { $tables .= "	".$table->toString()."\n"; }
-			return "header:\n".
-							"{version: ".$this->version.
-							", number of tables: ".$this->number_of_tables.
-							", search range: ".$this->search_range.
-							", entry selector: ".$this->entry_selector.
-							", range shift: ".$this->range_shift.
-							"}\n".
-							"tables:\n".
-							$tables; }
+			foreach($this->tables as $table) { $tables .= $table->toString()."\n"; }
+			return "[HEADER]\n\n".
+				"{version: ".$this->version.
+				", number of tables: ".$this->number_of_tables.
+				", search range: ".$this->search_range.
+				", entry selector: ".$this->entry_selector.
+				", range shift: ".$this->range_shift.
+				"}\n\n".
+				"[TABLES]\n\n".
+				$tables; }
 
 // ------------------- actual functions ------------------
 

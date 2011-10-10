@@ -26,11 +26,11 @@
 	$json = false;
 	while($json === false && count($fonts)>0) {
 		$font = new OTTTFont(array_pop($fonts));
-		echo "font header data:\n" . $font->toString();
+		echo "font header data:\n" . $font->toString() . "\n";
 		$data = $font->get_glyph("X");
 		if($data!==false) {
 			$json = $data->toJSON(); }}
 
-	if($json===false) { die("the letter 'X' could not be found!"; }
+	if($json===false) { die("the letter 'X' could not be found!"); }
 	echo "glyph information for 'X':\n" . $json;
 ?>

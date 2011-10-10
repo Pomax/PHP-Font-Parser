@@ -99,8 +99,10 @@
 			rewind($fh);
 			fseek($fh, $globalsubindex->nexttable);
 
+			//echo "encoding: ".$topdictindex->Encoding.", CID: ".($topdictindex->is_CIDFont() ? "yes":"no")."\n";
+
 			// Is there an encoding that we might find our character in?
-			if(!$topdictindex->is_CIDFont() && $topdictindex->Encodings!=0)
+			if(!$topdictindex->is_CIDFont())
 			{
 /*
 				// this code cannot be uncommented and be expected to work, because
@@ -123,6 +125,8 @@
 											"nLeft"=> FileRead::read_BYTE($fh)); } }
 				print_r($encoding);
 */
+				echo "ERROR: non-CID Fonts (OTF that use SID rather than CID to map glyphs) are currently not supported.";
+				exit();
 			}
 			
 			// Is there a charset that we might find our character in?
