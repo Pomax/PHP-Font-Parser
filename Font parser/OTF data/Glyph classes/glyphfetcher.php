@@ -99,57 +99,27 @@
 			rewind($fh);
 			fseek($fh, $globalsubindex->nexttable);
 
-			//echo "encoding: ".$topdictindex->Encoding.", CID: ".($topdictindex->is_CIDFont() ? "yes":"no")."\n";
-
-			// Is there an encoding that we might find our character in?
-			if(!$topdictindex->is_CIDFont())
-			{
-/*
-				// this code cannot be uncommented and be expected to work, because
-				// it was never tested. Instead this is placeholder code for "if I ever implement it".
-
-				// nav to encodings and read
-				$encoding = array();
-				$encoding["format"] = FileRead::read_BYTE($fh);
-				if($encoding["format"]==0){
-					$encoding["nCodes"] = FileRead::read_BYTE($fh);
-					$encoding["code"] = array();
-					for($c=0; $c<$encoding["nCodes"]; $c++) {
-						$encoding["code"][] = FileRead::read_BYTE($fh); }}
-
-				elseif($encoding["format"]==1) {
-					$encoding["nRanges"] = FileRead::read_BYTE($fh);
-					$encoding["Range1"] = array();
-					for($r=0; $r<$encoding["nRanges"]; $r++) {
-						$encoding["Range1"][] = array("first"=> FileRead::read_BYTE($fh),
-											"nLeft"=> FileRead::read_BYTE($fh)); } }
-				print_r($encoding);
-*/
-				echo "ERROR: non-CID Fonts (OTF that use SID rather than CID to map glyphs) are currently not supported.";
-				exit(-1);
-			}
-			
 			// Is there a charset that we might find our character in?
 			if($topdictindex->charset!=0)
 			{
-				$mark = ftell($fh);
-				
-				// is there a cache entry for the "charstringindex" that contains the subroutines used by
-				// the fontdict datastructure that this character is found in?
-				$charstringindex = "";
-				if(isset(GlyphFetcher::$charstringindices[$index])) { $charstringindex = GlyphFetcher::$charstringindices[$index]; }
-				// if not yet, build it from the font data and then cache it for future reference.
-				else {
-					rewind($fh);
-					fseek($fh, $cff->offset + $topdictindex->CharStrings);
-					$charstringsindex = CFFIndex::create_index($fh); 
-					$charstringindices[$index] = $charstringindex; }
-				// echo "Char Strings INDEX:\n" . $charstringsindex->toString() . "\n---\n";
-
 				// find the fontdict that we need to look at in order to find this character's
 				// description. we do this by accessing the "FDarray" offset
 				if($topdictindex->is_CIDFont())
 				{
+					$mark = ftell($fh);
+				
+					// is there a cache entry for the "charstringindex" that contains the subroutines used by
+					// the fontdict datastructure that this character is found in?
+					$charstringindex = "";
+					if(isset(GlyphFetcher::$charstringindices[$index])) { $charstringindex = GlyphFetcher::$charstringindices[$index]; }
+					// if not yet, build it from the font data and then cache it for future reference.
+					else {
+						rewind($fh);
+						fseek($fh, $cff->offset + $topdictindex->CharStrings);
+						$charstringsindex = CFFIndex::create_index($fh); 
+						$charstringindices[$index] = $charstringindex; }
+					// echo "Char Strings INDEX:\n" . $charstringsindex->toString() . "\n---\n";
+
 					rewind($fh);
 					fseek($fh, $cff->offset + $topdictindex->FDArray);
 					$fontdictindex = CFFFontDictIndex::create_index($fh, $cff->offset, $topdictindex->CharstringType);
@@ -179,7 +149,24 @@
 						$data->width = $fontdict->privatedict->nominalWidthX + $data->differenceWithNominalWidthX; }
 					else { $data->width = $fontdict->privatedict->defaultWidthX; }
 				}
+
+				else
+				{
+					// for non-CID fonts, the top dict acts as font dict.
+					$topdictindex->load_private_dict($fh, $offset, $topdictindex->CharstringType);
+
+					// get the charstring data block
+					rewind($fh);
+					fseek($fh, $cff->offset + $topdictindex->CharStrings);
+					$charstringsindex = CFFIndex::create_index($fh); 
+					//echo "CHARSTRING INDEX:\n" . $charstringsindex->toString() . "\n---\n";
+					$charstringdata = $charstringsindex->get_data($fh,$index);
+
+					// and then resolve the Type2 charstring to glyph outline data
+					$data = new Type2GlyphData($fh, $charstringdata, $topdictindex, $globalsubindex);
+				}
 			}
+			else { die("ERROR: no charset information could be found in this font.\n"); }
 
 			// construct a new Glyph object, cache it, and then return it
 			$ret = new Glyph();

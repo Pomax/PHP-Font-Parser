@@ -47,7 +47,9 @@
 			$this->parse_type2_charstring($fh);
 			// now turn $glyphdata from type Type2Rule[] into GlyphRule[]
 			$glyphrules = new Type2GlyphRules();
-			foreach($this->glyphdata as $t2rule) { foreach($t2rule->toGlyphRules() as $rule) { $glyphrules->addRule($rule); }}
+			foreach($this->glyphdata as $t2rule) {
+        foreach($t2rule->toGlyphRules() as $rule) {
+          $glyphrules->addRule($rule); }}
 			$this->glyphdata = $glyphrules;
 		}
 		

@@ -100,7 +100,7 @@
 		var $BaseFontBlend = "-";
 
 		// CID specific top dict values
-		var $ROS = "-";
+		var $ROS = array();
 		var $CIDFontVersion = 0;
 		var $CIDFontRevision = 0;
 		var $CIDFontType = 0;
@@ -256,12 +256,33 @@
 			return $index;
 		}
 
-		public function is_CIDFont() { return $this->ROS!='-'; }
+		public function is_CIDFont() { return $this->ROS!=array(); }
 		
 		function setup(&$fh)
 		{
 			parent::setup($fh);
 			$this->process($fh);
+		}
+
+		var $privatedict = "-";
+
+		function load_private_dict(&$fh, $cff_offset, $charstringtype)
+		{
+			$private_dict_size = $this->Private['dictsize'];
+			$private_dict_offset = $this->Private['offset'];
+			$privdict = new CFFPrivateDict();
+			$start = $cff_offset + $private_dict_offset;
+			$end = $start + $private_dict_size;
+			CFFDataParser::process_block($fh, $start, $end, $privdict);
+			$privdict->load_subroutines($fh, $start, $charstringtype);
+			$this->privatedict = $privdict;
+		}
+		
+		function get_subroutine(&$fh, $subrindex)
+		{
+      if($this->privatedict!="-") {
+        return $this->privatedict->get_subroutine($fh, $subrindex); }
+      die("ERROR: attempted to access Top Dict as Font Dict in a font that does not support this.\n");
 		}
 		
 		function toString()
