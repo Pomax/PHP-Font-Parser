@@ -31,7 +31,6 @@
 
 			// check whether this is a filler glyph
 			if($glyph->hash === $font->filler_hash) { return false; }
-			echo "    - hash: ".$glyph->hash."\n";
 
 			// if we have a glyph make sure to set its administrative values
 			$glyph->font = $font->fontfilename;
