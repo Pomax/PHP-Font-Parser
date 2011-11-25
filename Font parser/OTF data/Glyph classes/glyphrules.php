@@ -4,7 +4,7 @@
 	/**
 	 * these rules represent all possible vector instructions that are
 	 * used in TrueType and Type 2 outlines: move, line, quadratic
-	 * curve, and cubic curve. That's it. Sure, there are loads of 
+	 * curve, and cubic curve. That's it. Sure, there are loads of
 	 * "shorthand" commands used in both formats, but they still
 	 * resolve to these four primitives.
 	 */
@@ -12,12 +12,14 @@
 	/**
 	  * Input requirement: all glyph rules use relative coordinates
 	  */
-	class GlyphRule { 
+	class GlyphRule {
+	  var $hash = '';
 		function computeBounds(&$x, &$y, &$bounds) {
 			$this->computeLocalBounds($x, $y, $bounds);
 			$this->pushBounds($x,$y,$bounds); }
 		function computeLocalBounds(&$x, &$y, &$bounds) {}
 		function pushBounds($x, $y, &$bounds) {
+		  $this->hash = md5($this->hash ."-". $x ."-". $y);
 			$x = intval($x);
 			$y = intval($y);
 			if($bounds["minx"]>$x) { $bounds["minx"] = $x; }
@@ -100,15 +102,15 @@
 			$this->cx = $cx;
 			$this->cy = $cy; }
 		// compute the curve
-		function computeXCurveAt($start_x, $t) { 
+		function computeXCurveAt($start_x, $t) {
 			$mt = (1-$t);
-			return	$mt * $mt * $start_x + 
-					2 * $mt * $t * ($start_x +$this->cx) + 
+			return	$mt * $mt * $start_x +
+					2 * $mt * $t * ($start_x +$this->cx) +
 					$t * $t * ($start_x+$this->cx+$this->x2); }
-		function computeYCurveAt($start_y, $t) { 
+		function computeYCurveAt($start_y, $t) {
 			$mt = (1-$t);
-			return	$mt * $mt * $start_y + 
-					2 * $mt * $t * ($start_y +$this->cy) + 
+			return	$mt * $mt * $start_y +
+					2 * $mt * $t * ($start_y +$this->cy) +
 					$t * $t * ($start_y+$this->cy+$this->y2); }
 		function computeFinalPoint(&$x, &$y, &$bounds) {
 			$x += $this->cx + $this->x2;
@@ -124,7 +126,7 @@
 		// coordinate pair, but that they must be computed relative to the last seen on-curve point.
 		// this means we need to sum over control points.
 		function compactString() { return "q".$this->cx." ".$this->cy." ".($this->cx+$this->x2)." ".($this->cy+$this->y2); }
-		function toAbsoluteSVG(&$x, &$y) { 
+		function toAbsoluteSVG(&$x, &$y) {
 			$x += $this->cx;
 			$y += $this->cy;
 			$s = "Q $x $y ";
@@ -138,23 +140,23 @@
 	class GlyphCubeCurveToRule extends GlyphParametricCurveToRule {
 		var $cx1; var $cy1; var $cx2; var $cy2;
 		function __construct($cx1, $cy1, $cx2, $cy2, $x2, $y2) {
-			parent::__construct($x2, $y2);		
+			parent::__construct($x2, $y2);
 			$this->cx1 = $cx1;
 			$this->cy1 = $cy1;
 			$this->cx2 = $cx2;
 			$this->cy2 = $cy2; }
 		// compute the curve
-		function computeXCurveAt($start_x, $t) { 
+		function computeXCurveAt($start_x, $t) {
 			$mt = (1-$t);
-			return	$mt * $mt * $mt * $start_x + 
-					3 * $mt * $mt * $t * ($start_x +$this->cx1) + 
-					3 * $mt * $t * $t * ($start_x +$this->cx1+$this->cx2) + 
+			return	$mt * $mt * $mt * $start_x +
+					3 * $mt * $mt * $t * ($start_x +$this->cx1) +
+					3 * $mt * $t * $t * ($start_x +$this->cx1+$this->cx2) +
 					$t * $t * $t * ($start_x+$this->cx1+$this->cx2+$this->x2); }
-		function computeYCurveAt($start_y, $t) { 
+		function computeYCurveAt($start_y, $t) {
 			$mt = (1-$t);
-			return	$mt * $mt * $mt * $start_y + 
-					3 * $mt * $mt * $t * ($start_y +$this->cy1) + 
-					3 * $mt * $t * $t * ($start_y +$this->cy1+$this->cy2) + 
+			return	$mt * $mt * $mt * $start_y +
+					3 * $mt * $mt * $t * ($start_y +$this->cy1) +
+					3 * $mt * $t * $t * ($start_y +$this->cy1+$this->cy2) +
 					$t * $t * $t * ($start_y+$this->cy1+$this->cy2+$this->y2); }
 		function computeFinalPoint(&$x, &$y, &$bounds) {
 			$x += $this->cx1 + $this->cx2 + $this->x2;
@@ -162,7 +164,7 @@
 		function compactString() { return "c".$this->cx1." ".$this->cy1." ".
 								($this->cx1+$this->cx2)." ".($this->cy1+$this->cy2)." ".
 								($this->cx1+$this->cx2+$this->x2)." ".($this->cy1+$this->cy2+$this->y2); }
-		function toAbsoluteSVG(&$x, &$y) { 
+		function toAbsoluteSVG(&$x, &$y) {
 			$x += $this->cx1;
 			$y += $this->cy1;
 			$s = "C $x $y ";
@@ -187,21 +189,23 @@
 	 */
 	abstract class GlyphRules {
 		var $instructions;
-		var $type;	// either GlyphRules::$TYPE2 or GlyphRules::$TRUETYPE
+		var $type;	     // either GlyphRules::$TYPE2 or GlyphRules::$TRUETYPE
+		var $hash = 0;
 		static $TYPE2 = "type2";
 		static $TRUETYPE = "truetype";
 		function __construct($type) {
-			$this->instructions = array(); 
+			$this->instructions = array();
 			$this->type = $type; }
 		function addRule($glyphrule) {
+			$this->hash = md5($this->hash . $glyphrule->hash);
 			$this->instructions[] = $glyphrule; }
 		function addRules($glyphrules) {
 			foreach($glyphrules as $glyphrule) {
-				$this->instructions[] = $glyphrule; }}
+			  $this->addRule($glyphrule); }}
 		function getType() { return $this->type; }
 		function merge($other) {
 			foreach($other->instructions as $instruction) {
-				$this->instructions[] = $instruction; }}
+			  $this->addRule($instruction); }}
 		function computeBounds() {
 			$rulecount = 1;
 			$x=0;

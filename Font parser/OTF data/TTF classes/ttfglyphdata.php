@@ -23,9 +23,9 @@
 		var $flags;
 		var $xCoordinates;
 		var $yCoordinates;
-	
+
 		var $glyphdata = false;
-	
+
 		// mask flags, one bit each
 		var $MASK_ON_CURVE;
 		var $MASK_X_BYTE_OR_SHORT;
@@ -41,7 +41,7 @@
 			$this->MASK_REPEAT = 0x08;
 			$this->MASK_X_DUAL = 0x10;
 			$this->MASK_Y_DUAL = 0x20; }
-			
+
 		function on_curve($index) { return $this->masks($index, $this->MASK_ON_CURVE); }
 		function x_is_byte($index) { return $this->masks($index, $this->MASK_X_BYTE_OR_SHORT); }
 		function y_is_byte($index) { return $this->masks($index, $this->MASK_Y_BYTE_OR_SHORT); }
@@ -50,7 +50,7 @@
 		function y_dual_set($index) { return $this->masks($index, $this->MASK_Y_DUAL); }
 
 		private function masks($index, $mask) { return ($this->flags[$index] & $mask) == $mask; }
-		
+
 		/**
 		 * merge another TTFGlyphData object into this one. If this one was not initialised, verbatim copy instead
 		 */
@@ -79,7 +79,7 @@
 				$this->glyphdata = $other->glyphdata;
 			}
 		}
-		
+
 		// matrix = offset x/y, 2x2 transform
 		function formGlyphRules($matrix = array(0,0, 1,0,0,1))
 		{
@@ -97,27 +97,27 @@
 
 			$xoffset = $matrix[0];
 			$yoffset = $matrix[1];
-			
+
 			$firstx = 0;
 			$firsty = 0;
-			
+
 			for($i=0; $i<$coordinates;  $i++)
 			{
 				$oncurve = $this->on_curve($i);
 
 				$x = $this->xMin + $this->xCoordinates[$i];
 				$y = $this->yMin + $this->yCoordinates[$i];
-				
+
 				// apply matrix transform
 				$x = $x * $matrix[2] + $y * $matrix[3];
 				$y = $x * $matrix[4] + $y * $matrix[5];
 
-				if($i==0) { 
-					$x += $xoffset; 
-					$y += $yoffset; 
+				if($i==0) {
+					$x += $xoffset;
+					$y += $yoffset;
 					$firstx = $x;
 					$firsty = $y; }
-				
+
 				// does this coordinate mark the start of a contour?
 				if(in_array($i, $this->startPtsOfContours)) {
 					$path_start_x = $dx + $x;
@@ -156,7 +156,7 @@
 			// move back to 0/0, in case of compound glyphs
 			$this->glyphdata->addRule(new GlyphMoveToRule(-$dx, -$dy));
 		}
-		
+
 		function toString()
 		{
 			return "{" . $this->unitsPerEm . "," .
@@ -176,7 +176,7 @@
 					"[" . implode(",",$this->yCoordinates) . "]}";
 		}
 	}
-	
+
 	/**
 	 * In order to help build the outline, we need a poly-bezier tracking class. Coordinates
 	 * in TrueType may indicate successive bezier control points, with on-curve points
@@ -198,13 +198,13 @@
 			$points = array();
 			for($i=0; $i<count($this->control_x); $i ++) { $points[] = $this->control_x[$i] . ",". $this->control_y[$i]; }
 			return $points; }
-			
+
 		// when a bezier curve has an implied last coordinate, the corresponding GlyphRule that is build
 		// needs to know that in terms of coordinate placement, a MoveTo that counteracts the last
 		// coordinate is required. If this is not done, the relative coordinates will be off.
 		function set_implied_last() { $this->implied_last = true; }
-		
-		// TrueType uses quadratic curves. The last point in the control_... variables is a 
+
+		// TrueType uses quadratic curves. The last point in the control_... variables is a
 		// genuine coordinate, any points in between indicate successive control points.
 		// If there is more than one control point, there are on-curve coordinates between
 		// successive control points.
@@ -216,7 +216,7 @@
 			// only one control point (simple quadratic bezier)
 			if(count($this->control_x)==2) {
 				$rules[] = new GlyphQuadCurveToRule($this->control_x[0], $this->control_y[0], $this->control_x[1], $this->control_y[1]); }
-			
+
 			// more than one control point - start inferring real coordinates
 			else {
 				// run through the sequence up to the last control point (last-1) + genuine coordinate (last)
@@ -238,7 +238,7 @@
 			// an open bezier curve (last bezier coordinate being the first contour coordinate).
 			if($this->implied_last) { $rules[] = new GlyphMoveToRule(-$this->control_x[$count-1], -$this->control_y[$count-1]); }
 
-			return $rules; 
+			return $rules;
 		}
 	}
 ?>

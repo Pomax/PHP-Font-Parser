@@ -14,7 +14,6 @@
 	 */
 	class GlyphFetcher
 	{
-		static $datacache = array();
 		static $charstringindices = array();
 		private static $NOTSET = -9999;
 
@@ -29,9 +28,15 @@
 			if($font->version=="OTTO") { $glyph = GlyphFetcher::get_CFF_glyph($font, $char, $index); }
 			else { $glyph = GlyphFetcher::get_TTF_glyph($font, $char, $index); }
 			if($glyph === false) return false;
+
+			// check whether this is a filler glyph
+			if($glyph->hash === $font->filler_hash) { return false; }
+			echo "    - hash: ".$glyph->hash."\n";
+
 			// if we have a glyph make sure to set its administrative values
 			$glyph->font = $font->fontfilename;
 			$glyph->type = ($font->version=="OTTO" ? "CFF" : "TTF");
+			$glyph->quadsize = $font->get_quad_size();
 			$glyph->index = $index;
 			$glyph->glyph = $char;
 			return $glyph;
@@ -44,17 +49,18 @@
 		private static function get_CFF_glyph($font, $char, $index)
 		{
 			$data = false;
-			
+
 			// step zero: does this char exist?
 			if($index == GlyphFetcher::$NOTSET) { $index = $font->get_index($char); }
+
 			// how about now?
-			if($index===false) { 
+			if($index===false) {
 				// nope, no index. This character is not supported by this font.
 				return false; }
 
 			// step one: the earlier call to get_index() may have called get_data()
 			// with an actual index, so is that data cached now?
-			if(isset(GlyphFetcher::$datacache[$char])) { return GlyphFetcher::$datacache[$char]; }
+			if(isset($font->glyphcache[$char])) { return $font->glyphcache[$char]; }
 
 			// okay we're still not there, but we have an index. Load up the CFF parser and get to work
 			require_once(OTTTFont::$CFFlocation . "CFFBlockClasses.php");
@@ -64,7 +70,7 @@
 			$cff =& $font->tables['CFF '];
 			$offset = $cff->offset;
 			fseek($fh, $offset);
-			
+
 			// read header
 			$version_major = FileRead::read_BYTE($fh);
 			$version_minor = FileRead::read_BYTE($fh);
@@ -76,13 +82,13 @@
 			fseek($fh, $offset + $hdrSize);
 			$nameindex = CFFIndex::create_index($fh);
 			// echo "Name INDEX:\n" . $nameindex->toString() . "\n---\n";
-			
-			// read in the top dict index 
+
+			// read in the top dict index
 			rewind($fh);
 			fseek($fh, $nameindex->nexttable);
 			$topdictindex = CFFTopDictIndex::create_index($fh);
 			// echo "Top DICT INDEX:\n" . $topdictindex->toString() . "\n---\n";
-			
+
 			// read in the string index (FIXME: resolving strings is rather cumbersome, and not working a.t.m.)
 			rewind($fh);
 			fseek($fh, $topdictindex->nexttable);
@@ -94,7 +100,7 @@
 			fseek($fh, $stringindex->nexttable);
 			$globalsubindex =  CFFIndex::create_index($fh);
 			// echo "Global Subr INDEX:\n" . $globalsubindex->toString() . "\n---\n";
-		
+
 			// move to the next table
 			rewind($fh);
 			fseek($fh, $globalsubindex->nexttable);
@@ -107,7 +113,7 @@
 				if($topdictindex->is_CIDFont())
 				{
 					$mark = ftell($fh);
-				
+
 					// is there a cache entry for the "charstringindex" that contains the subroutines used by
 					// the fontdict datastructure that this character is found in?
 					$charstringindex = "";
@@ -116,7 +122,7 @@
 					else {
 						rewind($fh);
 						fseek($fh, $cff->offset + $topdictindex->CharStrings);
-						$charstringsindex = CFFIndex::create_index($fh); 
+						$charstringsindex = CFFIndex::create_index($fh);
 						$charstringindices[$index] = $charstringindex; }
 					// echo "Char Strings INDEX:\n" . $charstringsindex->toString() . "\n---\n";
 
@@ -135,7 +141,7 @@
 					// now that we have the correct fontdict, we can properly parse the type2 charstring for this glyph
 					$charstringdata = $charstringsindex->get_data($fh, $index);
 					$fontdict = $fontdictindex->get_font_dict($fd);
-					
+
 					// the following line is a debug comment, but a fairly important one. glyphs have a default width,
 					// which can be overriden by an instruction at the start of the glyph's outline charstring. In order
 					// for this to yield a sensible metric, the nominal width has to have been correctly computable.
@@ -144,7 +150,7 @@
 
 					// grab the data, and make sure the width metric is corrected.
 					$data = new Type2GlyphData($fh, $charstringdata, $fontdict, $globalsubindex);
-					if($data->differenceWithNominalWidthX!=0) { 
+					if($data->differenceWithNominalWidthX!=0) {
 						//echo "width = " . $fontdict->privatedict->nominalWidthX . " + " .$data->differenceWithNominalWidthX . "\n";
 						$data->width = $fontdict->privatedict->nominalWidthX + $data->differenceWithNominalWidthX; }
 					else { $data->width = $fontdict->privatedict->defaultWidthX; }
@@ -158,7 +164,7 @@
 					// get the charstring data block
 					rewind($fh);
 					fseek($fh, $cff->offset + $topdictindex->CharStrings);
-					$charstringsindex = CFFIndex::create_index($fh); 
+					$charstringsindex = CFFIndex::create_index($fh);
 					//echo "CHARSTRING INDEX:\n" . $charstringsindex->toString() . "\n---\n";
 					$charstringdata = $charstringsindex->get_data($fh,$index);
 
@@ -170,6 +176,7 @@
 
 			// construct a new Glyph object, cache it, and then return it
 			$ret = new Glyph();
+			$ret->hash = $data->glyphdata->hash;
 			$ret->glyphrules = $data->glyphdata;
 			$ret->width = $data->width;
 			$ret->computeBounds();
@@ -179,11 +186,11 @@
 			// FIXME: this might not be the correct way to determine LSB
 			$ret->lsb= $ret->bounds["minx"];
 			$ret->rsb = $data->width - ($ret->bounds["maxx"] - $ret->bounds["minx"] + $ret->lsb);
-			
+
 			// set the height based on the bounding box.
 			// FIXME: this should really be the vertical metric value instead.
 			$ret->height = $ret->bounds["maxy"] - $ret->bounds["miny"];
-			GlyphFetcher::$datacache[$char] = $ret;
+			$font->cache_glyph($char, $ret);
 			return $ret;
 		}
 
@@ -196,8 +203,12 @@
 		{
 			$data = GlyphFetcher::get_TTF_glyph_for_index($font, $char, $index);
 
+			// FIXME: find out how we can get here, code path wise, when data is false!
+			if($data===false) { return false; }
+
 			// construct Glyph object and return
 			$ret = new Glyph();
+			$ret->hash = $data->glyphdata->hash;
 			$ret->index = $index;
 			$ret->font = $font->fontfilelocation;
 			$ret->height = $data->yMax - $data->yMin;
@@ -221,10 +232,10 @@
 			// alternative width
 			$ret->rsb = $ret->width - ($ret->lsb + $ret->bounds["width"]);
 
-			GlyphFetcher::$datacache[$char] = $ret;
-			return $ret;     
+			$font->cache_glyph($char, $ret);
+			return $ret;
 		}
-		
+
 		// the "matrix" variable represents an x/y offset as 2x3 transformation matrix
 		private static function get_TTF_glyph_for_index($font, $char, $index, $matrix = array(0,0, 1,0,0,1))
 		{
@@ -233,9 +244,9 @@
 			// step zero: does this char exist?
 			if($index == GlyphFetcher::$NOTSET) { $index = $font->get_index($char); }
 			if($index===false) { return false; }
-			
+
 			// step one: get_index may have called get_data with an actual index, so is the data for it cached now?
-			if(isset(GlyphFetcher::$datacache[$char])) { return GlyphFetcher::$datacache[$char]; }
+			if(isset($font->glyphcache[$char])) { return $font->glyphcache[$char]; }
 
 			// there was no cache yet. Perform the real lookup.
 			require_once(OTTTFONT::$TTFlocation . "ttfglyphdata.php");
@@ -285,10 +296,10 @@
 			// if there is no outline data, we need to fill in the zero-valued metrics
 			if($empty)
 			{
-				$data->xMin = 0; 
-				$data->yMin = 0; 
-				$data->xMax = 0; 
-				$data->yMax = 0; 
+				$data->xMin = 0;
+				$data->yMin = 0;
+				$data->xMax = 0;
+				$data->yMax = 0;
 				$data->height = 0;
 				require_once(OTTTFont::$GDlocation . "glyphrules.php");
 				$data->glyphdata = new Type2GlyphRules();
@@ -396,13 +407,6 @@
 						// correct for offset and flip y coordinate
 						$yCoordinates[$i] = $y - $yMin; }
 
-					// now hash and compare to known non-glyph hash
-					$hash = 0;
-					foreach($xCoordinates as $x) { $hash = md5($x.$hash); }
-					foreach($yCoordinates as $y) { $hash = md5($y.$hash); }
-					//echo "hash for $char is: $hash\n";
-					if($hash==$font->filler_hash) { return false; }
-					
 					// bind data and form a glyphrules object
 					$data->xCoordinates=$xCoordinates;
 					$data->yCoordinates=$yCoordinates;
@@ -448,7 +452,7 @@
 						$scale01 = 0;
 						$scale10 = 0;
 						$yscale = 1;
-	
+
 						if(masks($flags, $WE_HAVE_A_SCALE)) {
 							$xscale = FileRead::read_F2DOT14($fh);
 							$yscale = $xscale; }
@@ -485,7 +489,7 @@
 
 					}
 					while (masks($flags, $MORE_COMPONENTS));
-					
+
 					// if there are instructions, we read them in but don't do anything with them,
 					// because this parser does not process instructions.
 					if(masks($flags, $WE_HAVE_INSTRUCTIONS)) {

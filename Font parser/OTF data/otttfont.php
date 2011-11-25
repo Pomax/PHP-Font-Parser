@@ -6,21 +6,21 @@
 		until they are necessary, and the CMAP and glyph tables are never stored in memory, but
 		are only referenced by following the pointer instructions that are stored in the tables
 		relevant to glyph retrieval.
-		
+
 		This has a benefit that the memory footprint is small, but the disadvantage that processing
 		is not as fast as when the font would be properly turned into an object representation and
 		then flown through at the speed of RAM.
-		
+
 		Future versions might be rewritten to memory-map a font, so that pointer based reading
 		is faster than it is now. However, this may also make PHP run into the memory limit when
 		particularly large CJK fonts are loaded. The Hanazono font, for instance, is not an unusually
 		large font and takes up 23 MB. This is almost double the size of the standard 12MB that
 		a typical PHP installation is set up to use.
-		
+
 		Currently, only the "Unicode BMP (UCS-2)" and "Unicode UCS-4" are searched for character
 		implentations. If the script claims "not supported", that really means "not supported by this
 		parser, but not necessarily not supported by this font".
-		
+
 		@author: Michiel "Pomax" Kamermans
 		@contact: pomax の nihongoresources 。com
 		@version: 1.0
@@ -61,8 +61,15 @@
 		var $range_shift;
 		var $tables = array();
 
+		// should this font cache glyphs?
+		var $cachechars = true;
+
 		// glyph index caching
 		var $indexcache = array();
+
+    // glyph data caching
+		var $glyphcache = array();
+
 
 		// if the font has a filler glyph, in addition to mapping nonexistent glyphs to index 0,
 		// this is the hash code for that glyph, used in the get_glyph functions. I do not
@@ -74,28 +81,29 @@
 
 		// table loader
 		var $OTFTableLoader = "";
-		function getOTFTableLoader() { 
+		function getOTFTableLoader() {
 			if($this->OTFTableLoader=="") {
 				$this->OTFTableLoader = new OTFTableLoader($this); }
 			return $this->OTFTableLoader; }
 
 		/**
 		 * The constructor loads part of the file into memory. It does not do any
-		 * validation, so it assumes an OTF file and if it isn't, you may get 
+		 * validation, so it assumes an OTF file and if it isn't, you may get
 		 * very unexpected results.
 		 */
-		function __construct($filename)
+		function __construct($filename, $cache=true)
 		{
 			require_once(OTTTFONT::$OTFlocation . "tables.php");
 
+      $this->cachechars = $cache;
 			$this->fontfilename=$filename;
 			$this->fontfilelocation=OTTTFONT::$FONTlocation . $filename;
 			$fh = $this->open();
 			$this->version = fread($fh,4);
-			
+
 			// TrueType collection?
 			if($this->version == "ttcf") { trigger_error("Tried to load a TrueType Collection as if it was a single font.\n", E_USER_ERROR); }
-			
+
 			// read in the sfnt header
 			$this->number_of_tables = FileRead::read_USHORT($fh);
 			$this->search_range = FileRead::read_USHORT($fh);
@@ -112,7 +120,12 @@
 
 			fclose($fh);
 		}
-		
+
+		// cache a character for this font
+		function cache_glyph($char, $data) {
+		  if($this->cachechars) {
+		    $this->glyphcache[$char] = $data; }}
+
 		// TTF fonts have - at least up until April 2010 - a bytecode version number corresponding to
 		// [0x00 0x01 0x00 0x00]. To my understanding, this is not byte-order-sensitive.
 		function is_TTF() { return ($this->version== chr(0).chr(1).chr(0).chr(0)); }
@@ -140,9 +153,9 @@
 // ------------------- actual functions ------------------
 
 		// set up a filepointer for this font
-		function open() { 
+		function open() {
 			if(!file_exists($this->fontfilelocation)) {
-				echo "Font [".$this->fontfilelocation."] does not exist. Exiting"; 
+				echo "Font [".$this->fontfilelocation."] does not exist. Exiting";
 				exit(-1); }
 			return fopen($this->fontfilelocation, 'r'); }
 
@@ -172,7 +185,7 @@
 			if($index===false) return false;
 			return GlyphFetcher::get_glyph($this, $char, $index);
 		}
-		
+
 		/**
 		 * Get the glyph data in JSON form for a particular character
 		 */
@@ -181,6 +194,15 @@
 			$glyphdata = $this->get_glyph($char);
 			if($glyphdata===false) { return false; }
 			return $glyphdata->toJSON();
+		}
+
+		/**
+		 * Get the em quad size for this font
+		 */
+		function get_quad_size()
+		{
+      $head =& $this->getOTFTableLoader()->get_head_table($this);
+      return $head->unitsPerEm;
 		}
 
 		/**
@@ -196,7 +218,7 @@
 		{
 			// previously cached?
 			if(isset($this->indexcache[$character])) { return $this->indexcache[$character]; }
-			
+
 			// if not, consult the character map
 			$fh = $this->open();
 			$cmap = $this->tables['cmap'];
@@ -205,7 +227,7 @@
 			$numTables = FileRead::read_USHORT($fh);
 
 			// get the list of available subtables
-			$subtables = array();			
+			$subtables = array();
 			for($n=0; $n<$numTables; $n++) {
 				$platformID = FileRead::read_USHORT($fh);
 				$encodingID = FileRead::read_USHORT($fh);
@@ -225,7 +247,7 @@
 				fseek($fh, $cmap->offset + $subtable->offset);
 				$format = FileRead::read_USHORT($fh);
 
-				// and for now, we only look at the subtable if it uses format 4 
+				// and for now, we only look at the subtable if it uses format 4
 				if($format == 4) {
 					$val = $this->contains_format4($character, $fh);
 					if($val !== false) {
@@ -283,7 +305,7 @@
 			while($i<$cmapformat4->segCount && $cmapformat4->endCount[$i]<$c) { $i++; }
 
 			// if the character was not found in any segment...
-			if($i>=$cmapformat4->segCount) { 
+			if($i>=$cmapformat4->segCount) {
 				$this->log("No segment found containing this glyph.");
 				return false; }
 
@@ -291,7 +313,7 @@
 						"[".$cmapformat4->startCount[$i]."-".$cmapformat4->endCount[$i]."], delta ".
 						$cmapformat4->idDelta[$i].", offset ".$cmapformat4->idRangeOffset[$i]."...");
 
-			// if the following conditional succeeds, our character has a mapping stored implicitly for this 
+			// if the following conditional succeeds, our character has a mapping stored implicitly for this
 			// segment. However, if that mapping is 0, the character itself is not supported (0 mapping to
 			// the NOTDEF glyph.
 			if($cmapformat4->startCount[$i]<=$c)
@@ -305,7 +327,7 @@
 
 					/*
 						This is where things get a bit mad...
-					
+
 						If the idRangeOffset value for the segment is not 0, the mapping of character codes relies on glyphIdArray.
 						The character code offset from startCode is added to the idRangeOffset value. This sum is used as an
 						offset from the current location within idRangeOffset itself to index out the correct glyphIdArray value.
