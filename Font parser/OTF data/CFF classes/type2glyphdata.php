@@ -16,7 +16,7 @@
 	class Type2GlyphData
 	{
 		var $debug = false;
-		
+
 		var $xUitsPerEm = 1000;	// indicates how to interpret the coordinates relative to the glyph's quad
 		var $yUnitsPerEm = 1000;	// indicates how to interpret the coordinates relative to the glyph's quad
 
@@ -24,7 +24,7 @@
 		var $height = 1000;
 
 		var $differenceWithNominalWidthX = 0;	// indicates this charater's width difference with respect ot the font's nominalWidthX value
-		
+
 		var $pointer = 0;
 		var $charstring = "";
 		var $stack = array();			// max size = 48
@@ -52,13 +52,13 @@
           $glyphrules->addRule($rule); }}
 			$this->glyphdata = $glyphrules;
 		}
-		
+
 		// vars used for the parse run.
 		var $hinting_mode = "HINTING";
 		var $outline_mode = "OUTLINE";
 		var $parse_mode = "HINTING";
 
-// --------------------------------------		
+// --------------------------------------
 
 		/*
 
@@ -122,10 +122,14 @@
 			// four byte float (short . ushort)
 			elseif($byte==255)
 			{
-				$bd = 0x0100 * $this->read_charstring_byte() + $this->read_charstring_byte();
-				if(($bd & 0x1000)==0x1000) { $bd = - ($bd - 0x1000); }
-				$ad = 0x0100 * $this->read_charstring_byte() + $this->read_charstring_byte();
-				$num = $bd + $ad/(0x10000);
+			  $pattern2c = 0x01000000 * $this->read_charstring_byte() +
+			               0x010000 * $this->read_charstring_byte() +
+			                 0x0100 * $this->read_charstring_byte() +
+			                          $this->read_charstring_byte();
+        $pattern = ~$pattern2c + 1;
+        $short = ($pattern >> 16);
+        $ushort = 0x0000FFFF & $pattern;
+        $num = - ($short + round($ushort/65536,3));
 				$this->enqueue($num);
 //				echo "4 byte float: $num\n";
 				return true;
@@ -135,7 +139,7 @@
 
 		/**
 		 * A charstring has the form
-		 * 
+		 *
 		 *	w? {hs* vs* cm* hm* mt subpath}? {mt subpath}* endchar
 		 *
 		 * This means that there may be a difference-with-nominal-width indicator,
@@ -533,7 +537,7 @@
 								$optional[] = array('dya'=>$dya, 'dyb'=>$dyb); }
 							if($this->debug) echo "hstemhm (y=$y, dy=$dy, ".$this->array_collapse($optional).")\n\n";
 							$this->add_rule(new HSTEMHM($y, $dy, $optional));
-							$this->hstems = 1 + count($optional);					
+							$this->hstems = 1 + count($optional);
 							break; }
 
 						// HINTMASK: 8 bit hint
@@ -628,7 +632,7 @@
 								$optional[] = array('dxa'=>$dxa, 'dxb'=>$dxb); }
 							if($this->debug) echo "vstemhm (x=$x, dx=$dx, ".$this->array_collapse($optional).")\n\n";
 							$this->add_rule(new VSTEMHM($x, $dx, $optional));
-							$this->vstems = 1 + count($optional);		
+							$this->vstems = 1 + count($optional);
 							break; }
 
 						// RCURVELINE:  {dxa dya dxb dyb dxc dyc}+ dxd dyd
@@ -821,7 +825,7 @@
 		// encoded as the difference from nominalWidthX (type2.pdf, pp16)
 		private function check_for_width($argcount) {
 			$this->parse_mode = $this->outline_mode;
-			if($this->differenceWithNominalWidthX==0 && count($this->stack)==($argcount+1)) { 
+			if($this->differenceWithNominalWidthX==0 && count($this->stack)==($argcount+1)) {
 				$diff =$this->get_head();
 //				if($this->debug) echo "difference with nominal width (X) found: $diff\n";
 				$this->differenceWithNominalWidthX = $diff; }}
@@ -846,13 +850,13 @@
 			return array_pop($this->stack); }
 
 		// add data to the stack
-		private function enqueue($val) { 
+		private function enqueue($val) {
 //			if($this->debug) echo "[*] enqueue $val - stack: {" . (implode(',',$this->stack)) . "}\n";
 			// only queue if the stack is below max stack size (c.f. 5177)
 			if(count($this->stack)<48) { $this->stack[] = $val; }}
 
 		// add data to the transient stack
-		private function transient_enqueue($val) { 
+		private function transient_enqueue($val) {
 //			if($this->debug) echo "[*] transient enqueue $val - stack: {" . (implode(',',$this->transient_stack)) . "}\n";
 			// only queue if the transient stack is below max stack size (c.f. 5177)
 			if(count($this->transient_stack)<32) { $this->transient_stack[] = $val; }}
