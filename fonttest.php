@@ -21,16 +21,17 @@
 	 * fonts until it's found, or we run out of fonts.
 	 *
 	 * For this test, we'll print the header information for the
-	 * loaded font, and try to find the letter "X".
+	 * loaded font, and try to find the letter "g".
 	 */
+	$letter = "g";
 	$json = false;
 	while($json === false && count($fonts)>0) {
 		$font = new OTTTFont(array_pop($fonts));
 		echo "font header data:\n" . $font->toString() . "\n";
-		$data = $font->get_glyph("X");
+		$data = $font->get_glyph($letter);
 		if($data!==false) {
 			$json = $data->toJSON(); }}
 
-	if($json===false) { die("the letter 'X' could not be found!"); }
-	echo "glyph information for 'X':\n" . $json;
+	if($json===false) { die("the letter '$letter' could not be found!"); }
+	echo "glyph information for '$letter':\n" . $json;
 ?>

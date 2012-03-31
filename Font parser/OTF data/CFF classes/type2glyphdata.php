@@ -122,17 +122,18 @@
 			// four byte float (short . ushort)
 			elseif($byte==255)
 			{
-			  $pattern2c = 0x01000000 * $this->read_charstring_byte() +
-			               0x010000 * $this->read_charstring_byte() +
-			                 0x0100 * $this->read_charstring_byte() +
-			                          $this->read_charstring_byte();
-        $pattern = ~$pattern2c + 1;
-        $short = ($pattern >> 16);
-        $ushort = 0x0000FFFF & $pattern;
-        $num = - ($short + round($ushort/65536,3));
-				$this->enqueue($num);
-//				echo "4 byte float: $num\n";
-				return true;
+        $pattern2c = 0x01000000 * $this->read_charstring_byte() +
+                      0x010000 * $this->read_charstring_byte() +
+                        0x0100 * $this->read_charstring_byte() +
+                                $this->read_charstring_byte();
+        $pattern = (~$pattern2c + 1) & 0xFFFFFFFF;
+        $ushort = $pattern & 0xFFFF;
+        $short = $pattern >> 16;
+        if($short >= 32768) { $short -= 65536; }
+        $num = - ($short + round($ushort / 65536,3));
+        $this->enqueue($num);
+//        echo "4 byte float: $num\n";
+        return true;
 			}
 			return false;
 		}
