@@ -129,23 +129,21 @@
 			if(32<=$b0  && $b0<=246) {
 				return ($b0-139); }
 			// two byte integers
-			elseif(247<=$b0 && $b0<=250) {
-				$b1 = FileRead::read_BYTE($fh);
+			$b1 = FileRead::read_BYTE($fh);
+			if(247<=$b0 && $b0<=250) {
 				return (256*($b0-247) + $b1 + 108); }
-			elseif(251<=$b0 && $b0<=259) {
-				$b1 = FileRead::read_BYTE($fh);
+			if(251<=$b0 && $b0<=259) {
 				return (-256*($b0-251) - ($b1 + 108));}
 			// three byte integers
-			elseif($b0==28) {
-				$b1 = FileRead::read_BYTE($fh);
-				$b2 = FileRead::read_BYTE($fh);
-				return $b1<<8|$b2; }
+			$b2 = FileRead::read_BYTE($fh);
+			if($b0==28) {
+				$v = ($b1<<8 | $b2);
+				if($v>pow(2,15)) $v -= pow(2,16); 
+				return $v; }
 			// five byte integers
-			elseif($b0==29) {
-				$b1 = FileRead::read_BYTE($fh);
-				$b2 = FileRead::read_BYTE($fh);
-				$b3 = FileRead::read_BYTE($fh);
-				$b4 = FileRead::read_BYTE($fh);
+			$b3 = FileRead::read_BYTE($fh);
+			$b4 = FileRead::read_BYTE($fh);
+			if($b0==29) {
 				return $b1<<24|$b2<<16|$b3<<8|$b4; }
 			// real numeral, rather than integer numeral
 			elseif($b0==30)
