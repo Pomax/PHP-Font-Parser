@@ -338,7 +338,7 @@
 							*(idRangeOffset[i]/2 + (c - startCount[i]) + &idRangeOffset[i])
 
 						Try as I might, I couldn't make that do the right thing. Luckily, an alternative function is provided by
-						http://developer.apple.com/textfonts/TTRefMan/RM06/Chap6cmap.html:
+						https://developer.apple.com/fonts/TTRefMan/RM06/Chap6cmap.html:
 
 							glyphindex = idRangeOffset[i] + 2 * (c - startCode[i]) + (Ptr) &idRangeOffset[i]
 
@@ -347,7 +347,7 @@
 					*/
 
 					$pointer = $cmapformat4->idRangeOffset[$i] + 2 * ($c - $cmapformat4->startCount[$i]) + $cmapformat4->filepointers[$i];
-
+					
 					// zero index?
 					if($pointer==0) {
 						$this->log("Glyph index was 0, which means it maps to NOTDEF.");

@@ -39,7 +39,7 @@
 		function computeLocalBounds(&$x, &$y, &$bounds) {
 			$x += $this->x1;
 			$y += $this->y1; }
-		function compactString() { return "m".$this->x1." ".$this->y1; }
+		function compactString($s) { return "m".($s*$this->x1)." ".($s*$this->y1); }
 		function toAbsoluteSVG(&$x, &$y) { $x += $this->x1; $y += $this->y1; return "M $x $y"; }
 		function toString() { return "'Move to' instruction, x/y: ".$this->x1."/".$this->y1; }}
 
@@ -60,7 +60,7 @@
 		function computeLocalBounds(&$x, &$y, &$bounds) {
 			$x += $this->x2;
 			$y += $this->y2; }
-		function compactString() { return "l".$this->x2." ".$this->y2; }
+		function compactString($s) { return "l".($s*$this->x2)." ".($s*$this->y2); }
 		function toAbsoluteSVG(&$x, &$y) { $x +=$this->x2; $y += $this->y2; return "L $x $y"; }
 		function toString() { return "'Line to' instruction, x/y: ".$this->x2."/".$this->y2; }}
 
@@ -125,7 +125,9 @@
 		// the assumption here is that "relative coordinates" are specified in relation to the previous
 		// coordinate pair, but that they must be computed relative to the last seen on-curve point.
 		// this means we need to sum over control points.
-		function compactString() { return "q".$this->cx." ".$this->cy." ".($this->cx+$this->x2)." ".($this->cy+$this->y2); }
+		function compactString($s) {
+		  return "q".($s*$this->cx)." ".($s*$this->cy)." ".($s*($this->cx+$this->x2))." ".($s*($this->cy+$this->y2));
+		}
 		function toAbsoluteSVG(&$x, &$y) {
 			$x += $this->cx;
 			$y += $this->cy;
@@ -161,9 +163,10 @@
 		function computeFinalPoint(&$x, &$y, &$bounds) {
 			$x += $this->cx1 + $this->cx2 + $this->x2;
 			$y += $this->cy1 + $this->cy2 + $this->y2; }
-		function compactString() { return "c".$this->cx1." ".$this->cy1." ".
-								($this->cx1+$this->cx2)." ".($this->cy1+$this->cy2)." ".
-								($this->cx1+$this->cx2+$this->x2)." ".($this->cy1+$this->cy2+$this->y2); }
+		function compactString($s) {
+		  return "c".($s*$this->cx1)." ".($s*$this->cy1)." ".
+								($s*($this->cx1+$this->cx2))." ".($s*($this->cy1+$this->cy2))." ".
+								($s*($this->cx1+$this->cx2+$this->x2))." ".($s*($this->cy1+$this->cy2+$this->y2)); }
 		function toAbsoluteSVG(&$x, &$y) {
 			$x += $this->cx1;
 			$y += $this->cy1;
@@ -213,9 +216,11 @@
 			$bounds = array("minx"=>999999, "miny"=>999999, "maxx"=>-999999, "maxy"=>-999999);
 			foreach($this->instructions as $rule) { $rule->computeBounds($x, $y, $bounds); }
 			return $bounds; }
-		function compactString() {
+		function compactString($scale=1) {
 			$s = "";
-			foreach($this->instructions as $instruction) { $s .= $instruction->compactString() . ""; }
+			foreach($this->instructions as $instruction) {
+			  $s .= $instruction->compactString($scale) . "";
+			}
 			return str_replace(" -","-",$s); }
 		function toAbsoluteSVG($x, $y) {
 			$svg = "";

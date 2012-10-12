@@ -575,8 +575,10 @@
 		function toString() {
 			return "{format ".$this->format.
 						" cmap table. length: ".$this->length.
-						", segCount: ".$this->segCount.
-						"}"; }
+						", segCount: ".$this->segCount."\n".
+						", startCount: ".print_r($this->startCount,true)."\n".
+						", endCount: ".print_r($this->endCount,true)."\n".
+						", rangeShift: ".$this->rangeShift."}"; }
 	}
 
 	/**
