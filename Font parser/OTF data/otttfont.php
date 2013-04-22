@@ -118,6 +118,9 @@
 				$length = FileRead::read_ULONG($fh);
 				$this->tables[$tag] = new FontTable($tag,$checkSum,$offset,$length); }
 
+			// determine character support
+			$this->supported = get_supported_characters();
+
 			fclose($fh);
 		}
 
@@ -149,6 +152,62 @@
 				"}\n\n".
 				"[TABLES]\n\n".
 				$tables; }
+
+		// get all supported characters
+		function get_supported_characters() {
+			// FIXME: duplicated code from get_index($character)
+			// TODO: rewrite the code so that the "supports" array is
+			//       consulted for determining whether a character will
+			//       be found or not.
+			$supported = array();
+
+			// consult the character map
+			$fh = $this->open();
+			$cmap = $this->tables['cmap'];
+			fseek($fh,$cmap->offset); // forward the pointer to the cmap table
+			$version = FileRead::read_USHORT($fh);
+			$numTables = FileRead::read_USHORT($fh);
+			// get the list of available subtables
+			$subtables = array();
+			for($n=0; $n<$numTables; $n++) {
+				$platformID = FileRead::read_USHORT($fh);
+				$encodingID = FileRead::read_USHORT($fh);
+				$offset = FileRead::read_ULONG($fh);
+				$subtables[FontSubTable::$encodings[$encodingID]] = new FontSubTable($platformID, $encodingID, $offset); }
+
+			// get the list of characters supported in a 'Unicode BMP (UCS-2)' subtable
+			if(isset($subtables['Unicode BMP (UCS-2)'])) {
+				$subtable =& $subtables['Unicode BMP (UCS-2)'];
+				rewind($fh);
+				fseek($fh, $cmap->offset + $subtable->offset);
+				$format = FileRead::read_USHORT($fh);
+				if($format == 4) {
+					$cmap = CMAPFormat4::createCMAPFormat4($fh);
+					for($i=0,$last=$cmap->segCountX2/2; $i<$last; $i++) {
+						$range = array($cmap->startCount[$i], $cmap->endCount[$i]);
+						if($range[0] != 0xFFFF) $supported[] = $range;
+					}
+				}
+			}
+
+			// also get the list of characters supported in a 'Unicode UCS-4' subtable
+			if(isset($subtables['Unicode UCS-4'])) {
+				$this->log("Font contains the 'Unicode UCS-4' subtable. Searching for $character (hex: ".strtoupper(dechex($c)).", dec: $c)");
+
+				$subtable =& $subtables['Unicode UCS-4'];
+				rewind($fh);
+				fseek($fh, $cmap->offset + $subtable->offset);
+				$format = FileRead::read_USHORT($fh);
+				if($format == 12) {
+					$cmap = CMAPFormat12::createCMAPFormat12($fh);
+					foreach($cmap->groups as $group) {
+						$range = array($group['startCharCode'], $group['endCharCode']);
+						if($range[0] != 0xFFFF) $supported[] = $range;
+					}
+				}
+			}
+			return $supported;
+		}
 
 // ------------------- actual functions ------------------
 

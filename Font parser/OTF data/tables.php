@@ -137,7 +137,7 @@
 		var $maxComponentElements;
 		var $maxComponentDepth;
 	}
-	
+
 	/**
 	 * "struct" class for the "hmtx" table.
 	 */
@@ -189,7 +189,7 @@
 		var $xMax;
 		var $yMax;
 		var $macStyle;
-		var $lowestRecPPEM;	
+		var $lowestRecPPEM;
 		var $fontDirectionHint;
 		var $indexToLocFormat;
 		var $glyphDataFormat;
@@ -223,9 +223,9 @@
 		private $font;
 
 		// bind a new OTF table loader to a specific font.
-		function __construct($font) { 
-			$this->font = $font; 
-			$this->load_tables($font); 
+		function __construct($font) {
+			$this->font = $font;
+			$this->load_tables($font);
 		}
 
 		/**
@@ -371,7 +371,7 @@
 			fclose($fh);
 			return $this->get_maxp_table($font);
 		}
-		
+
 		/**
 		 * Parse name table (name)
 		 */
@@ -388,11 +388,11 @@
 			$name->stringOffset = FileRead::read_USHORT($fh);
 			$name->nameRecord[] = array();
 			for($i=0; $i<$name->count; $i++) {
-				$nameRecord = array("platformID"=>FileRead::read_USHORT($fh), 
-								"encodingID"=>FileRead::read_USHORT($fh), 
-								"languageID"=>FileRead::read_USHORT($fh), 
-								"nameID"=>FileRead::read_USHORT($fh), 
-								"length"=>FileRead::read_USHORT($fh), 
+				$nameRecord = array("platformID"=>FileRead::read_USHORT($fh),
+								"encodingID"=>FileRead::read_USHORT($fh),
+								"languageID"=>FileRead::read_USHORT($fh),
+								"nameID"=>FileRead::read_USHORT($fh),
+								"length"=>FileRead::read_USHORT($fh),
 								"offset"=>FileRead::read_USHORT($fh));
 				$name->nameRecord[] = $nameRecord; }
 			// format 1 has additional language tags
@@ -526,7 +526,7 @@
 		var $filepointers;	// special
 		var $glyphIdArray;
 		var $glyphIdArrayPointer;
-		
+
 		/**
 		 * create a cmap format 4 struct based on the data at the filepointer
 		 */
@@ -546,7 +546,7 @@
 			for($i=0;$i<$segCount;$i++) {
 				$endCount[] = FileRead::read_USHORT($fh); }
 			$cmapformat4->endCount = $endCount;
-			
+
 			$cmapformat4->reservedPad = FileRead::read_USHORT($fh); 	//	Set to 0.
 
 			$startCount=array();					//	character code for the first character in the segment. the last segment's code is 0xFFFF.
@@ -554,7 +554,7 @@
 				$startCount[] = FileRead::read_USHORT($fh); }
 			$cmapformat4->startCount = $startCount;
 
-			
+
 			$idDelta=array();						//	Delta (=mapping offset) for all character codes in a specific segment.
 			for($i=0;$i<$segCount;$i++) {
 				$idDelta[] = FileRead::read_SHORT($fh); }
@@ -568,10 +568,10 @@
 				$idRangeOffset[] = FileRead::read_USHORT($fh); }
 			$cmapformat4->idRangeOffset = $idRangeOffset;
 			$cmapformat4->filepointers = $filepointers;
-			
+
 			return $cmapformat4;
 		}
-		
+
 		function toString() {
 			return "{format ".$this->format.
 						" cmap table. length: ".$this->length.
@@ -591,7 +591,7 @@
 		var $language;
 		var $nGroups;
 		var $groups;
-		
+
 		/**
 		 * create a cmap format 4 struct based on the data at the filepointer
 		 */
@@ -602,7 +602,7 @@
 			$cmapformat12->length = FileRead::read_ULONG($fh);
 			$cmapformat12->language = FileRead::read_ULONG($fh);
 			$cmapformat12->nGroups = FileRead::read_ULONG($fh);
-			
+
 			$groups = array();
 			for($n=0; $n<$cmapformat12->nGroups; $n++) {
 				$startCharCode = FileRead::read_ULONG($fh);
@@ -615,7 +615,7 @@
 
 			return $cmapformat12;
 		}
-		
+
 		function toString() {
 			return "{format ".$this->format.
 						" cmap table. length: ".$this->length.
