@@ -119,7 +119,7 @@
 				$this->tables[$tag] = new FontTable($tag,$checkSum,$offset,$length); }
 
 			// determine character support
-			$this->supported = get_supported_characters();
+			$this->supported = $this->get_supported_characters();
 
 			fclose($fh);
 		}
