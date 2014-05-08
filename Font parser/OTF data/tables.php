@@ -510,6 +510,7 @@
 	 */
 	class CMAPFormat4
 	{
+		var $offset;
 		var $format;
 		var $length;
 		var $language;
@@ -533,6 +534,7 @@
 		static function createCMAPFormat4(&$fh)
 		{
 			$cmapformat4 = new CMAPFormat4();
+			$cmapformat4->offset = $fh;
 			$cmapformat4->length = FileRead::read_USHORT($fh); 		//	This is the length in bytes of the subtable.
 			$cmapformat4->language = FileRead::read_USHORT($fh);	 	//	kind of an illegal field, sometimes (see documentation)
 			$cmapformat4->segCountX2 = FileRead::read_USHORT($fh); 	//	twice the value of segCount
@@ -587,6 +589,7 @@
 	 */
 	class CMAPFormat12
 	{
+		var $offset;
 		var $length;
 		var $language;
 		var $nGroups;
@@ -598,6 +601,7 @@
 		static function createCMAPFormat12(&$fh)
 		{
 			$cmapformat12 = new CMAPFormat12();
+			$cmapformat12->offset = $fh;
 			FileRead::read_USHORT($fh);						// reserved for... who knows
 			$cmapformat12->length = FileRead::read_ULONG($fh);
 			$cmapformat12->language = FileRead::read_ULONG($fh);
