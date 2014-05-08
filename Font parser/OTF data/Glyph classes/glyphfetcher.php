@@ -57,10 +57,6 @@
 				// nope, no index. This character is not supported by this font.
 				return false; }
 
-			// step one: the earlier call to get_index() may have called get_data()
-			// with an actual index, so is that data cached now?
-			if(isset($font->glyphcache[$char])) { return $font->glyphcache[$char]; }
-
 			// okay we're still not there, but we have an index. Load up the CFF parser and get to work
 			require_once(OTTTFont::$CFFlocation . "CFFBlockClasses.php");
 
@@ -189,7 +185,6 @@
 			// set the height based on the bounding box.
 			// FIXME: this should really be the vertical metric value instead.
 			$ret->height = $ret->bounds["maxy"] - $ret->bounds["miny"];
-			$font->cache_glyph($char, $ret);
 			return $ret;
 		}
 
@@ -230,22 +225,17 @@
 			$ret->width = $hmetric["advanceWidth"];
 			// alternative width
 			$ret->rsb = $ret->width - ($ret->lsb + $ret->bounds["width"]);
-
-			$font->cache_glyph($char, $ret);
 			return $ret;
 		}
 
 		// the "matrix" variable represents an x/y offset as 2x3 transformation matrix
 		private static function get_TTF_glyph_for_index($font, $char, $index, $matrix = array(0,0, 1,0,0,1))
 		{
-//			echo "glyph index: $index\n";
+			// echo "glyph index for $char: $index\n";
 
 			// step zero: does this char exist?
 			if($index == GlyphFetcher::$NOTSET) { $index = $font->get_index($char); }
 			if($index===false) { return false; }
-
-			// step one: get_index may have called get_data with an actual index, so is the data for it cached now?
-			if(isset($font->glyphcache[$char])) { return $font->glyphcache[$char]; }
 
 			// there was no cache yet. Perform the real lookup.
 			require_once(OTTTFONT::$TTFlocation . "ttfglyphdata.php");

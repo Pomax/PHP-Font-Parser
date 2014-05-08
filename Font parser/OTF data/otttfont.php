@@ -95,7 +95,7 @@
 		{
 			require_once(OTTTFONT::$OTFlocation . "tables.php");
 
-      $this->cachechars = $cache;
+			$this->cachechars = $cache;
 			$this->fontfilename=$filename;
 			$this->fontfilelocation=OTTTFONT::$FONTlocation . $filename;
 			$fh = $this->open();
@@ -192,8 +192,6 @@
 
 			// also get the list of characters supported in a 'Unicode UCS-4' subtable
 			if(isset($subtables['Unicode UCS-4'])) {
-				$this->log("Font contains the 'Unicode UCS-4' subtable. Searching for $character (hex: ".strtoupper(dechex($c)).", dec: $c)");
-
 				$subtable =& $subtables['Unicode UCS-4'];
 				rewind($fh);
 				fseek($fh, $cmap->offset + $subtable->offset);
@@ -236,13 +234,16 @@
 		 */
 		function get_glyph($char)
 		{
+			if(isset($this->glyphcache[$char])) { return $this->glyphcache[$char]; }
 			require_once(OTTTFont::$GDlocation . "glyphfetcher.php");
 			// get index. This will also implicitly cache the glyph data,
 			// so subsequent get_glyph calls will retrieved the cached
 			// data rather than searching the font again.
 			$index = $this->get_index($char);
 			if($index===false) return false;
-			return GlyphFetcher::get_glyph($this, $char, $index);
+			$data = GlyphFetcher::get_glyph($this, $char, $index);
+			$this->cache_glyph($char, $data);
+			return $data;
 		}
 
 		/**
@@ -406,7 +407,7 @@
 					*/
 
 					$pointer = $cmapformat4->idRangeOffset[$i] + 2 * ($c - $cmapformat4->startCount[$i]) + $cmapformat4->filepointers[$i];
-					
+
 					// zero index?
 					if($pointer==0) {
 						$this->log("Glyph index was 0, which means it maps to NOTDEF.");
