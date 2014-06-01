@@ -3,13 +3,13 @@
 
 	function loadFontParser($script_location)
 	{
-		$BASElocation = $script_location . "Font parser/";
-		$FONTlocation = $script_location . "Fonts/";
+		$BASElocation = $script_location . "Font parser" . DIRECTORY_SEPARATOR;
+		$FONTlocation = $script_location . "Fonts" . DIRECTORY_SEPARATOR;
 
-		$OTFlocation = $BASElocation . "OTF data/";
-		$TTFlocation = $OTFlocation . "TTF classes/";
-		$CFFlocation = $OTFlocation . "CFF classes/";
-		$GDlocation = $OTFlocation . "Glyph classes/";
+		$OTFlocation = $BASElocation . "OTF data" . DIRECTORY_SEPARATOR;
+		$TTFlocation = $OTFlocation . "TTF classes" . DIRECTORY_SEPARATOR;
+		$CFFlocation = $OTFlocation . "CFF classes" . DIRECTORY_SEPARATOR;
+		$GDlocation = $OTFlocation . "Glyph classes" . DIRECTORY_SEPARATOR;
 
 		// byte sequence reading
 		require_once($BASElocation . "fileread.php");
