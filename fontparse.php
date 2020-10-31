@@ -3,7 +3,7 @@
 
 	// determine where we're actually running. You can change this variable 
 	// to hard-coded-ly reflect your production code's location.
-	$script_location = getcwd() . "/";
+	$script_location = __DIR__ . "/";
 
 	// uncomment the following line if you need error reporting and warnings explicitly turned on
 //	require_once($script_location . "errors.php");
