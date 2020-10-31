@@ -9,8 +9,7 @@ use this package.
 
 ---
 
-:warning: Note: this project hasn't been actively maintained for over
-half a decade. If you still use this, and have problems with
-modern PHP, fixing that is going to be more work than I can
-justify spending on this, so you'll need to help out.
-
+:warning: Note: this project hasn't been actively maintained
+in almost a decade. If you still use this, and have problems
+with modern PHP, fixing that is going to be more work than I
+can justify spending on this, so you'll need to help out.
